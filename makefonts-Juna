@@ -1,0 +1,48 @@
+#!/bin/bash
+# gen font files - for distribution, remove "-w" options below
+# you need to install python3-lxml-lxslt devel packages
+
+echo "Starting generation of Juna-$1 font"
+curwd=$(pwd)
+
+[ -f "$curwd/Data/features-$1" ] 		|| exit
+[ -f "$curwd/Data/fontinfo-$1" ] 		|| exit
+[ -f "$curwd/Data/FontMenuNameDB" ] 		|| exit
+[ -f "$curwd/Data/GlyphOrderAndAliasDB" ] 	|| exit
+checkoutlinesufo 	--version 		|| exit
+psautohint 		--version 		|| exit
+makeotf 		-v 			|| exit
+
+# CHECKOUTLINES
+read -s -n 1 -p "START: checkoutlinesufo `echo $'\n> '`"
+checkoutlinesufo -q --min-area 25 --tolerance 1 	\
+		 -e --all "$curwd/Juna-$1.pfa" 		;
+echo -e '\nDONE: checkoutlinesufo\n'
+
+# PSAUTOHINT
+read -s -n 1 -p "START: psautohint `echo $'\n> '`"
+psautohint 	-o 	"$curwd/Juna-$1-TMP.pfa" 	\
+		--all 					\
+		-c 					\
+	--fontinfo-file "$curwd/Data/fontinfo-$1" 	\
+			"$curwd/Juna-$1.pfa" 		;
+echo -e '\nDONE: psautohint\n'
+
+# MAKEOTF
+read -s -n 1 -p "START: makeotf `echo $'\n> '`"
+[ -f "$curwd/Juna-$1-TMP.pfa" ] || exit
+makeotf -f 	"$curwd/Juna-$1-TMP.pfa" 		\
+	-o 	"$curwd/Juna-$1.otf" 			\
+	-ff 	"$curwd/Data/features-$1" 		\
+	-fs 						\
+	-mf 	"$curwd/Data/FontMenuNameDB" 		\
+	-gf 	"$curwd/Data/GlyphOrderAndAliasDB" 	\
+	-r 						\
+	-addn 						\
+	-serif 						\
+	-fi 	"$curwd/Data/fontinfo-$1" 		\
+	-shw 						\
+	-omitMacNames 					\
+	-addDSIG 					\
+	-V 						;
+echo -e '\nDONE: makeotf\n'
